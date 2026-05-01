@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+
+    runs-on: ubuntu-24.04
+    env:
+      TOOLCHAIN_URI: "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/llvm-r383902b/clang-r383902.tar.gz"
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Cache toolchain
+      id: cache-toolchain
+      uses: actions/cache@v5
+      with:
+        path: toolchain
+        key: toolchain-${{ env.TOOLCHAIN_URI }}
+    - name: Get toolchain
+      if: steps.cache-toolchain.outputs.cache-hit != 'true'
+      run: |
+        mkdir --parents toolchain/clang/host/linux-x86
+        curl --silent ${TOOLCHAIN_URI} | tar --extract --directory=toolchain/clang/host/linux-x86 --gzip
+
+    - name: Build
+      env:
+        ARCH: arm64
+        CONFIG_SECTION_MISMATCH_WARN_ONLY: "y"
+        KCFLAGS: "-w"
+        LLVM: 1
+        LLVM_IAS: 1
+      run: |
+        export PATH="$(realpath toolchain/clang/host/linux-x86/bin):$PATH"
+
+        make O=out a03s_defconfig
+        make O=out --jobs=$(nproc)
+
+    - name: Upload Image
+      uses: actions/upload-artifact@v7
+      with:
+        name: Image
+        path: out/arch/arm64/boot/Image
+    - name: Upload DTB
+      uses: actions/upload-artifact@v7
+      with:
+        name: mt6765.dtb
+        path: out/arch/arm64/boot/dts/mediatek/mt6765.dtb
