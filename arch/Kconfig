@@ -499,11 +499,7 @@ config ARCH_SUPPORTS_THINLTO
 	  An architecture should select this if it supports clang's ThinLTO.
 
 config THINLTO
-	bool "Use clang ThinLTO (EXPERIMENTAL)"
-	depends on LTO_CLANG && ARCH_SUPPORTS_THINLTO
-	default y
-	help
-	  Use ThinLTO to speed up Link Time Optimization.
+	bool
 
 choice
 	prompt "Link-Time Optimization (LTO) (EXPERIMENTAL)"
@@ -514,13 +510,13 @@ choice
 config LTO_NONE
 	bool "None"
 
-config LTO_CLANG
-	bool "Use clang Link Time Optimization (LTO) (EXPERIMENTAL)"
+config LTO_CLANG_FULL
+	bool "Clang Full LTO (EXPERIMENTAL)"
 	depends on ARCH_SUPPORTS_LTO_CLANG
 	depends on !FTRACE_MCOUNT_RECORD || HAVE_C_RECORDMCOUNT
 	depends on !KASAN
 	depends on CC_IS_CLANG && LD_IS_LLD
-	select LTO
+	select LTO_CLANG
 	help
           This option enables clang's Link Time Optimization (LTO), which allows
           the compiler to optimize the kernel globally at link time. If you
@@ -531,7 +527,27 @@ config LTO_CLANG
           If you select this option, you must compile the kernel with clang and
 	  LLD.
 
+config LTO_CLANG_THIN
+	bool "Clang ThinLTO (EXPERIMENTAL)"
+	depends on ARCH_SUPPORTS_LTO_CLANG
+	depends on ARCH_SUPPORTS_THINLTO
+	depends on !FTRACE_MCOUNT_RECORD || HAVE_C_RECORDMCOUNT
+	depends on !KASAN
+	depends on CC_IS_CLANG && LD_IS_LLD
+	select LTO_CLANG
+	select THINLTO
+	help
+	  This option enables Clang's ThinLTO, which allows for parallel
+	  optimization and faster incremental compiles.
+
+          If you select this option, you must compile the kernel with clang and
+	  LLD.
+
 endchoice
+
+config LTO_CLANG
+	bool
+	select LTO
 
 config CFI
 	bool

@@ -837,10 +837,11 @@ ifdef CONFIG_LTO_CLANG
 ifdef CONFIG_THINLTO
 lto-clang-flags	:= -flto=thin
 KBUILD_LDFLAGS	+= --thinlto-cache-dir=.thinlto-cache
+KBUILD_LDFLAGS	+= $(call ld-option,--lto-whole-program-visibility -mllvm -always-rename-promoted-locals=false)
 else
 lto-clang-flags	:= -flto
 endif
-lto-clang-flags += -fvisibility=default $(call cc-option, -fsplit-lto-unit)
+lto-clang-flags += -fvisibility=hidden $(call cc-option, -fsplit-lto-unit)
 
 # Limit inlining across translation units to reduce binary size
 LD_FLAGS_LTO_CLANG := -mllvm -import-instr-limit=5
@@ -857,7 +858,8 @@ endif
 
 ifdef CONFIG_LTO
 LTO_CFLAGS	:= $(lto-clang-flags)
-KBUILD_CFLAGS	+= $(LTO_CFLAGS)
+KBUILD_CFLAGS	+= -fno-lto $(LTO_CFLAGS)
+KBUILD_AFLAGS	+= -fno-lto
 
 DISABLE_LTO	:= $(DISABLE_LTO_CLANG)
 export LTO_CFLAGS DISABLE_LTO
